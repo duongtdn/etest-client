@@ -3,8 +3,8 @@
 import React, { Component } from 'react'
 import { render } from 'react-dom'
 
-import AccountClient  from 'account-realm-client'
-import { UserProvider } from 'react-user'
+import AccountClient  from '@realmjs/account-client'
+import { UserProvider } from '@realmjs/react-user'
 
 import ResultApp from '../Page/Result'
 

@@ -4,49 +4,60 @@ export default {
   SUBMITTEDKEY: '__$submitted__',
   PINNEDKEY: '__$pinned__',
   QUIZZESKEY: '__$quizzes__',
+  SESSIONKEY: '__$sss__',
   observe(key, handler, flag=true) {
     if (typeof handler === 'number' && !flag) {
-      return this._removeObserver(key, handler)
+      return this.__removeObserver(key, handler);
     } else if (typeof handler === 'function' && flag) {
-      return this._addObserver(key, handler)
+      return this.__addObserver(key, handler);
     }
-
   },
   update(key, data) {
-    localStorage.setItem(key, JSON.stringify(data))
-    this._fire(key, data)
+    if (data === undefined) { return this; }
+    localStorage.setItem(key, JSON.stringify(data));
+    this.__fire(key, data);
+    return this;
   },
   get(key) {
-    const data = localStorage.getItem(key)
+    const data = localStorage.getItem(key);
     if (data && data.length > 0) {
-      return JSON.parse(data)
+      return JSON.parse(data);
     } else {
-      return null
+      return null;
     }
   },
   clear(key) {
-    localStorage.removeItem(key)
-    this._fire(key, null)
-  },
-  _handlers: {},
-  _addObserver(key, handler) {
-    if (this._handlers[key] === undefined) {
-      this._handlers[key] = { cnt: 0 }
+    if (key) {
+      localStorage.removeItem(key);
+      this.__fire(key, null);
+    } else {
+      ['SUBMITTEDKEY', 'PINNEDKEY', 'QUIZZESKEY', 'SESSIONKEY']
+      .forEach(key => {
+        localStorage.removeItem(this[key]);
+        this.__fire(this[key], null);
+      });
     }
-    const cnt = this._handlers[key].cnt++
-    this._handlers[key][cnt] = handler
-    return cnt
+    return this;
   },
-  _removeObserver(key, handlerIndex) {
-    if (this._handlers[key][handlerIndex]) {
-      delete this._handlers[key][handlerIndex]
+  __handlers: {},
+  __addObserver(key, handler) {
+    if (this.__handlers[key] === undefined) {
+      this.__handlers[key] = { cnt: 0 };
+    }
+    const cnt = this.__handlers[key].cnt++;
+    this.__handlers[key][cnt] = handler;
+    return cnt;
+  },
+  __removeObserver(key, handlerIndex) {
+    if (this.__handlers[key][handlerIndex]) {
+      delete this.__handlers[key][handlerIndex];
     }
   },
-  _fire(key, data) {
-    if (this._handlers[key]) {
-      Object.keys(this._handlers[key]).forEach( h => {
-        if (typeof this._handlers[key][h] === 'function') {
-          this._handlers[key][h](data)
+  __fire(key, data) {
+    if (this.__handlers[key]) {
+      Object.keys(this.__handlers[key]).forEach( h => {
+        if (typeof this.__handlers[key][h] === 'function') {
+          this.__handlers[key][h](data);
         }
       })
     }

@@ -40,6 +40,7 @@ export default class Header extends Component {
     super(props)
   }
   render() {
+    const env = this.props.env;
     return(
       <header className="">
         <div className="w3-bar" style={{maxWidth: '1200px', margin: 'auto'}}>
@@ -51,8 +52,7 @@ export default class Header extends Component {
                 this.props.user?
                   <UserSnipet user={this.props.user}
                               accountClient={this.props.accountClient}
-                              endgame={this.props.endgame}
-                              template = {this.props.template}
+                              template = {env.template}
                   />
                 : null
               }

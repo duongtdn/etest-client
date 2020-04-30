@@ -2,8 +2,8 @@
 
 import React, { Component } from 'react'
 
-import Quiz from 'react-quiz'
-import addons from 'react-quiz/dist/addons'
+import Quiz from '@elearn/react-quiz'
+import addons from '@elearn/react-quiz/dist/addons'
 
 import storage from '../../lib/storage'
 
@@ -96,11 +96,16 @@ class ActionBar extends Component {
           }
         </div>
         <div className="w3-cell" style = {{textAlign: 'right'}}>
-          <button className="w3-button" onClick={this.props.previous} disabled = {this.props.lockBackBtn}>
-            <i className="fa fa-arrow-left" /> <span className="w3-hide-small" > Back </span>
+          <button className="w3-button" onClick={this.props.previous} disabled = {this.props.isFirstQuiz}>
+            <i className="fas fa-arrow-left" /> <span className="w3-hide-small" > Back </span>
           </button>
           <button className="w3-button" onClick={this.props.next}>
-            <span className="w3-hide-small" > Next </span> <i className="fa fa-arrow-right" />
+            {
+              this.props.isLastQuiz ?
+                <span><span className="w3-hide-small" > Finish </span> <i className="fas fa-flag-checkered" /></span>
+                :
+                <span><span className="w3-hide-small" > Next </span> <i className="fas fa-arrow-right" /></span>
+            }
           </button>
         </div>
       </div>
@@ -110,24 +115,24 @@ class ActionBar extends Component {
 
 export default class QuizBoard extends Component {
   constructor(props) {
-    super(props)
+    super(props);
     this.state = {
-      pinned: storage.get(storage.PINNEDKEY) || []
-    }
+      pinned: storage.get(storage.PINNEDKEY) || [],
+    };
   }
   componentDidMount() {
     this._pHandler = storage.observe(storage.PINNEDKEY, (data) => {
-      const pinned = data || []
-      this.setState({ pinned })
-    })
+      const pinned = data || [];
+      this.setState({ pinned });
+    });
   }
   componentWillUnmount() {
-    storage.observe(storage.PINNEDKEY, this._pHandler, false)
+    storage.observe(storage.PINNEDKEY, this._pHandler, false);
   }
   render() {
-    const tests = this.props.tests
-    const quiz = tests.content.questions[this.props.currentIndex]
-    const section = tests.content.sections.findIndex( _section => _section.id === quiz.section)
+    const tests = this.props.tests;
+    const quiz = tests.content.questions[this.props.currentIndex];
+    const section = tests.content.sections.findIndex( _section => _section.id === quiz.section);
     return(
       <div className="">
 
@@ -151,6 +156,8 @@ export default class QuizBoard extends Component {
                     pinQuiz = {this.props.pinQuiz}
                     unpinQuiz = {this.props.unpinQuiz}
                     lockSubmitBtn = {this.props.lockSubmitBtn}
+                    isFirstQuiz = {this.props.currentIndex === 0}
+                    isLastQuiz = {this.props.currentIndex === tests.content.questions.length-1}
                     previous = {this.props.previous}
                     next = {this.props.next}
         />

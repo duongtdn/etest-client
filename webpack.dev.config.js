@@ -2,7 +2,7 @@ const path = require("path");
 
 module.exports = {
     entry: {
-      dev: ["./src/scripts/exam.js"]
+      dev: ["./src/scripts/app.js"]
     },
     output: {
       filename: "test.bundle.js",
@@ -22,7 +22,7 @@ module.exports = {
     devServer: {
       proxy: {
         '/api': {
-          target: 'http://localhost:3400',
+          target: 'http://localhost:3410',
           pathRewrite: {'^/api' : ''}
         }
       },

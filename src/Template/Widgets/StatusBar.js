@@ -2,12 +2,13 @@
 
 import React, { Component } from 'react'
 
+import { formatTime } from '../../lib/date'
 import storage from '../../lib/storage'
 import CircleTag from './CircleTag'
 
 class PinnedQuizesList extends Component {
   constructor(props) {
-    super(props)
+    super(props);
   }
   render() {
     if (this.props.pinnedQuizzes.length > 0) {
@@ -15,7 +16,7 @@ class PinnedQuizesList extends Component {
         <div className="">
           {
             this.props.pinnedQuizzes.map( i => (
-              <CircleTag  key={i} value = {i}
+              <CircleTag  key={i} value = {i+1}
                           onClick={ e => {
                             this.props.onClick && this.props.onClick()
                             this.props.moveToQuiz(i)
@@ -37,37 +38,38 @@ class PinnedQuizesList extends Component {
 
 export default class StatusBar extends Component {
   constructor(props) {
-    super(props)
+    super(props);
     this.state = {
       eslapsedTime: 0,
       submitted: storage.get(storage.SUBMITTEDKEY) || [],
       pinned: storage.get(storage.PINNEDKEY) || [],
-      showPinnedQuizzesInSmallScreen: false
-    }
+      showPinnedQuizzesInSmallScreen: false,
+      timeout: false,
+    };
   }
   componentDidMount() {
     if (this.props.timerOnOff === 'on') {
-      this.setState({ eslapsedTime : this.props.startAt })
-      this.startEslapsedTimer()
+      this.setState({ eslapsedTime : this._elapsedTimeBefore(this.props.test.startAt || 0) });
+      this.startEslapsedTimer();
     }
     this._sHandler = storage.observe(storage.SUBMITTEDKEY, (data) => {
-      const submitted = data || []
-      this.setState({ submitted })
+      const submitted = data || [];
+      this.setState({ submitted });
     })
     this._pHandler = storage.observe(storage.PINNEDKEY, (data) => {
-      const pinned = data || []
-      this.setState({ pinned })
+      const pinned = data || [];
+      this.setState({ pinned });
     })
   }
   componentDidUpdate(prevProps) {
     if (this.props.timerOnOff === 'on' && prevProps.timerOnOff === 'off') {
-      this.startEslapsedTimer()
+      this.setState({ eslapsedTime : this._elapsedTimeBefore(this.props.test.startAt || 0) });
+      this.startEslapsedTimer();
     }
+    this.props.page.onLeave(() => this.__cleanup());
   }
   componentWillUnmount() {
-    this.stopEslapsedTimer()
-    storage.observe(storage.SUBMITTEDKEY, this._sHandler, false)
-    storage.observe(storage.PINNEDKEY, this._pHandler, false)
+    this.__cleanup();
   }
   render() {
     const remainingTime = this.props.testDuration - this.state.eslapsedTime
@@ -87,7 +89,7 @@ export default class StatusBar extends Component {
         <button className = "w3-light-grey w3-text-blue-grey w3-padding w3-button" style={{width: '154px', marginBottom: '6px', cursor: 'pointer'}} onClick={this.props.finishTest}>
           <i className="fa fa-flag-checkered" /> Finish Test
         </button>
-        <div className="w3-pale-green w3-padding w3-button" style={{textAlign: 'center', width: '154px', marginBottom: '6px', cursor: 'pointer'}} onClick={this.props.showAllQuizzesPopup}>
+        <div className="w3-pale-green w3-padding w3-button" style={{textAlign: 'center', width: '154px', marginBottom: '6px', cursor: 'pointer'}} onClick={this.props.showPopupAllQuizzes}>
           <div className="w3-text-green w3-small"> Completion ({completion}%) </div>
           <div className="w3-text-green w3-large" style={{fontWeight: 'bold', marginTop: 0}}> {this.state.submitted.length}/{this.props.totalQuizzes} </div>
         </div>
@@ -109,9 +111,9 @@ export default class StatusBar extends Component {
       <div className="w3-hide-medium w3-hide-small">
         <div style={{ width: '310px', marginBottom: '6px'}}>
           <button className = "w3-light-grey w3-text-blue-grey w3-padding w3-button" style={{width: '310px', marginBottom: '6px', cursor: 'pointer'}} onClick={this.props.finishTest}>
-            <i className="fa fa-flag-checkered" /> Finish Test
+            <i className="fas fa-flag-checkered" /> Finish Test
           </button>
-          <div className="w3-pale-green w3-padding" style={{display: 'inline-block', textAlign: 'center', width: '154px', marginRight: '2px', cursor: 'pointer'}} onClick={this.props.showAllQuizzesPopup}>
+          <div className="w3-pale-green w3-padding" style={{display: 'inline-block', textAlign: 'center', width: '154px', marginRight: '2px', cursor: 'pointer'}} onClick={this.props.showPopupAllQuizzes}>
             <div className="w3-text-green w3-small"> Completion ({completion}%) </div>
             <div className="w3-text-green w3-large" style={{fontWeight: 'bold', marginTop: 0}}> {this.state.submitted.length}/{this.props.totalQuizzes} </div>
           </div>
@@ -132,7 +134,7 @@ export default class StatusBar extends Component {
   _renderForSmallScreen({remainingTime, timerColor}) {
     return (
       <div className="w3-hide-medium w3-hide-large" style={{marginBottom: '6px', position: 'relative'}}>
-        <div className="w3-pale-green w3-small" style={{display: 'inline-block', textAlign: 'center', padding: '8px 12px', marginRight: '6px', cursor: 'pointer'}} onClick={this.props.showAllQuizzesPopup}>
+        <div className="w3-pale-green w3-small" style={{display: 'inline-block', textAlign: 'center', padding: '8px 12px', marginRight: '6px', cursor: 'pointer'}} onClick={this.props.showPopupAllQuizzes}>
           <i className="fa fa-check w3-text-green" />
           { ' '}
           <span className="w3-text-green" style={{fontWeight: 'bold', marginTop: 0}}>
@@ -165,22 +167,30 @@ export default class StatusBar extends Component {
   }
   startEslapsedTimer() {
     this._timer = setInterval(() => {
-      const eslapsedTime = this.state.eslapsedTime + 1
-      this.setState({ eslapsedTime })
+      const eslapsedTime = this.state.eslapsedTime + 1;
+      this.setState({ eslapsedTime });
+      // console.log('tick ' + eslapsedTime + '/' + this.props.testDuration)
       if (eslapsedTime === this.props.testDuration) {
-        this.stopEslapsedTimer()
-        this.props.onTimeout && this.props.onTimeout()
+        this.setState({ timeout: true });
+        this.stopEslapsedTimer();
+        !this.props.disabled && this.props.onTimeout && this.props.onTimeout();
       }
-    }, 1000)
+    }, 1000);
   }
   stopEslapsedTimer() {
-    clearInterval(this._timer)
+    clearInterval(this._timer);
+  }
+  _elapsedTimeBefore(start) {
+    if (start === 0) { return start }
+    const now = new Date()
+    const startAt = new Date(start)
+    const diff = (now.getTime() - startAt.getTime())/1000
+    return parseInt(diff)
+  }
+  __cleanup() {
+    this.stopEslapsedTimer();
+    storage.observe(storage.SUBMITTEDKEY, this._sHandler, false);
+    storage.observe(storage.PINNEDKEY, this._pHandler, false);
   }
 }
 
-function formatTime(time) {
-  const hh = Math.floor(time/3600)
-  const mm = Math.floor((time%3600)/60)
-  const ss = time - hh*3600 - mm*60
-  return `${("00"+hh).slice(-2)}:${("00"+mm).slice(-2)}:${("00"+ss).slice(-2)}`
-}
